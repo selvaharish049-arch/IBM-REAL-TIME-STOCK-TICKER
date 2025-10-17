@@ -2,7 +2,7 @@
 Small front-end sample that demonstrates a real-time stock ticker UI. The project ships with: `index.html`, `style.css`, and `app.js` (all separate files).
 
 git:
-live deplayment:
+live deplayment:https://selvaharish049-arch.github.io/IBM-REAL-TIME-STOCK-TICKER/
 ## Features
 - Clean, responsive UI with rolling ticker animation.
 - Local simulated feed (random-walk) so the demo runs offline.
