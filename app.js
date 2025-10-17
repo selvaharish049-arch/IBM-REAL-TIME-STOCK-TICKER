@@ -1,81 +1,110 @@
-// app.js — Real-Time Stock Ticker (frontend-only sample)
-// Example: Finnhub quote endpoint (REST polling):
-// https://finnhub.io/api/v1/quote?symbol=IBM&token=YOUR_API_KEY
-// Note: many providers have rate limits. Polling every 1-5 seconds may exceed free limits.
+// Elements references
+const symbolInput = document.getElementById('symbolInput');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const tickerEl = document.getElementById('ticker');
+const snapshotBody = document.getElementById('snapshotBody');
 
+let running = false;
+let feedInterval = null;
 
-async function pollLiveQuote(symbol, apiKey){
-// this example tries Finnhub format; if you prefer a different provider, change the URL.
-const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(apiKey)}`;
-try{
-const res = await fetch(url);
-if(!res.ok) throw new Error('Network response not ok');
-const data = await res.json();
-// Finnhub returns {c:current, d:change, h, l, o, pc:previousClose}
-if(typeof data.c === 'number'){
-const price = data.c;
-const change = (data.d !== undefined) ? data.d : (price - (data.pc || price));
-const ts = Date.now();
-shiftTicker({symbol, price, change, ts});
-updateSnapshot(symbol, price, change, ts);
-} else {
-console.warn('Unexpected API payload', data);
-}
-} catch(err){
-console.error('Error polling live quote:', err.message);
-}
+// Helper to format time nicely
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString();
 }
 
+// Push a new item to the ticker and keep max 20 items
+function shiftTicker({symbol, price, change, ts}) {
+  const item = document.createElement('div');
+  item.className = 'item';
 
-function startLivePoller(symbol, apiKey, ms=3000){
-// immediate poll then interval
-pollerId = setInterval(()=> pollLiveQuote(symbol, apiKey), ms);
-pollLiveQuote(symbol, apiKey);
+  const upDownClass = change >= 0 ? 'up' : 'down';
+  const sign = change >= 0 ? '+' : '';
+
+  item.innerHTML = `
+    <span class="symbol">${symbol}</span>
+    <span class="price">${price.toFixed(2)}</span>
+    <span class="${upDownClass}">${sign}${change.toFixed(2)}</span>
+  `;
+
+  tickerEl.appendChild(item);
+
+  // Remove old items to keep length manageable
+  if(tickerEl.children.length > 20) {
+    tickerEl.removeChild(tickerEl.firstChild);
+  }
 }
 
-
-function stopLivePoller(){
-if(pollerId){ clearInterval(pollerId); pollerId = null; }
+// Update the snapshot table with the latest quote
+function updateSnapshot(symbol, price, change, ts) {
+  snapshotBody.innerHTML = `
+    <tr>
+      <td>${symbol}</td>
+      <td>${price.toFixed(2)}</td>
+      <td class="${change >= 0 ? 'up' : 'down'}">${change >= 0 ? '+' : ''}${change.toFixed(2)}</td>
+      <td>${formatTime(ts)}</td>
+    </tr>
+  `;
 }
 
+// Simulated feed: random walk price updates
+function startSimulatedFeed(symbol) {
+  let price = 100 + Math.random() * 20; // starting price around 100
+  let prevPrice = price;
 
-// --- Controls ---
-startBtn.addEventListener('click', ()=>{
-if(running) return;
-running = true;
-startBtn.disabled = true;
-stopBtn.disabled = false;
-const symbol = (symbolInput.value || 'IBM').toUpperCase().trim();
-const apiKey = apiKeyInput.value.trim();
+  feedInterval = setInterval(() => {
+    // Random price change between -1 and +1
+    const change = (Math.random() - 0.5) * 2;
+    price = Math.max(1, price + change); // price can’t go below 1
+    const actualChange = price - prevPrice;
+    prevPrice = price;
 
+    const ts = Date.now();
 
-// clear previous
-tickerEl.innerHTML = '';
-snapshotBody.innerHTML = '';
-
-
-if(useApi.checked && apiKey){
-// Use live provider (polling REST endpoint)
-startLivePoller(symbol, apiKey, 3000);
-} else {
-// Use simulated feed
-startSimulatedFeed(symbol);
+    shiftTicker({symbol, price, change: actualChange, ts});
+    updateSnapshot(symbol, price, actualChange, ts);
+  }, 1500); // update every 1.5 seconds
 }
+
+function stopSimulatedFeed() {
+  if(feedInterval) {
+    clearInterval(feedInterval);
+    feedInterval = null;
+  }
+}
+
+// Start button event
+startBtn.addEventListener('click', () => {
+  if (running) return;
+  running = true;
+
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+
+  const symbol = (symbolInput.value || 'IBM').toUpperCase().trim();
+
+  // Clear previous data
+  tickerEl.innerHTML = '';
+  snapshotBody.innerHTML = '';
+
+  // Start simulated feed
+  startSimulatedFeed(symbol);
 });
 
+// Stop button event
+stopBtn.addEventListener('click', () => {
+  if (!running) return;
+  running = false;
 
-stopBtn.addEventListener('click', ()=>{
-if(!running) return;
-running = false;
-startBtn.disabled = false;
-stopBtn.disabled = true;
-stopSimulatedFeed();
-stopLivePoller();
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+
+  stopSimulatedFeed();
 });
 
-
-// start automatically with default symbol
-window.addEventListener('DOMContentLoaded', ()=>{
-// optional: auto-start to show animation
-// startBtn.click();
+// Optional: auto-start with default symbol when page loads
+window.addEventListener('DOMContentLoaded', () => {
+  // Uncomment this line to start automatically on load
+  // startBtn.click();
 });
