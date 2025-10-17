@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Real-Time Stock Ticker — IBM-FE</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main class="app">
+<header class="header">
+<h1>Real-Time Stock Ticker</h1>
+<p class="subtitle">Demo: uses simulated updates by default. Optionally poll a live API (instructions in README).</p>
+</header>
+
+
+<section class="controls">
+<label>
+Symbol:
+<input id="symbolInput" type="text" value="IBM" maxlength="10" />
+</label>
+<button id="startBtn">Start</button>
+<button id="stopBtn" disabled>Stop</button>
+
+
+<label class="live-api">
+<input id="useApi" type="checkbox" /> Use live API (requires API key, see README)
+</label>
+
+
+<label class="api-key-label">
+API Key:
+<input id="apiKey" type="text" placeholder="Optional: API key for live data" />
+</label>
+</section>
+
+
+<section class="ticker-wrap">
+<div class="ticker" id="ticker">
+<!-- Entries will be injected here -->
+</div>
+</section>
+
+
+<section class="snapshot">
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Price</th>
+<th>Change</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody id="snapshotBody">
+<!-- Single-row snapshot inserted here -->
+</tbody>
+</table>
+</section>
+
+
+<footer class="footer">
+<small>Demo by IBM-FE • Local simulated feed by default</small>
+</footer>
+</main>
+
+
+<script src="app.js"></script>
+</body>
+</html>
