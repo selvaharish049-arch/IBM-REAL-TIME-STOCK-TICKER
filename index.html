@@ -1,70 +1,263 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Real-Time Stock Ticker — IBM-FE</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📈 Real-Time Stock Ticker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ---------- CSS START ---------- */
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: 50px auto;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+      padding: 30px;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .sub {
+      color: #ccc;
+      margin-bottom: 25px;
+    }
+
+    .input-box {
+      margin-bottom: 25px;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 1em;
+      width: 60%;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin-left: 10px;
+      font-size: 1em;
+      background-color: #00b4d8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #0077b6;
+    }
+
+    .stock-box {
+      margin-top: 30px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stock-box h2 {
+      margin-bottom: 10px;
+      color: #00eaff;
+    }
+
+    .stock-box p {
+      font-size: 1.1em;
+      margin: 5px 0;
+    }
+
+    .change {
+      font-weight: bold;
+    }
+
+    .change.up {
+      color: #00ff6a;
+    }
+
+    .change.down {
+      color: #ff4747;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 1em;
+      color: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 8px;
+    }
+
+    th {
+      color: #00eaff;
+    }
+
+    canvas {
+      margin-top: 15px;
+      width: 100%;
+      height: 300px;
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.85em;
+      color: #ccc;
+    }
+    /* ---------- CSS END ---------- */
+  </style>
 </head>
 <body>
-<main class="app">
-<header class="header">
-<h1>Real-Time Stock Ticker</h1>
-<p class="subtitle">Demo: uses simulated updates by default. Optionally poll a live API (instructions in README).</p>
-</header>
 
+  <div class="container">
+    <h1>📊 Real-Time Stock Ticker</h1>
+    <p class="sub">Simulated live stock price updates with graph and data table</p>
 
-<section class="controls">
-<label>
-Symbol:
-<input id="symbolInput" type="text" value="IBM" maxlength="10" />
-</label>
-<button id="startBtn">Start</button>
-<button id="stopBtn" disabled>Stop</button>
+    <div class="input-box">
+      <input type="text" id="symbolInput" placeholder="Enter stock symbol (AAPL)">
+      <button onclick="startTicker()">Start</button>
+    </div>
 
+    <div class="stock-box" id="stockBox" style="display:none;">
+      <h2 id="symbol">AAPL</h2>
+      <p>Current Price: $<span id="price">100.00</span></p>
+      <p class="change" id="change">+0.00</p>
 
-<label class="live-api">
-<input id="useApi" type="checkbox" /> Use live API (requires API key, see README)
-</label>
+      <!-- Table for extra details -->
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Price ($)</th>
+            <th>Change</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="dataBody"></tbody>
+      </table>
 
+      <canvas id="priceChart"></canvas>
+    </div>
+  </div>
 
-<label class="api-key-label">
-API Key:
-<input id="apiKey" type="text" placeholder="Optional: API key for live data" />
-</label>
-</section>
+  <footer>
+    <small>Demo mode — Simulating random stock price changes every second.</small>
+  </footer>
 
+  <script>
+    /* ---------- JS START ---------- */
+    let price = 100;
+    let symbol = "";
+    let chart;
+    let prices = [];
+    let labels = [];
+    let intervalId;
 
-<section class="ticker-wrap">
-<div class="ticker" id="ticker">
-<!-- Entries will be injected here -->
-</div>
-</section>
+    function startTicker() {
+      symbol = document.getElementById("symbolInput").value || "AAPL";
+      document.getElementById("symbol").textContent = symbol.toUpperCase();
+      document.getElementById("stockBox").style.display = "block";
 
+      price = 100;
+      prices = [price];
+      labels = [new Date().toLocaleTimeString()];
 
-<section class="snapshot">
-<table>
-<thead>
-<tr>
-<th>Symbol</th>
-<th>Price</th>
-<th>Change</th>
-<th>Time</th>
-</tr>
-</thead>
-<tbody id="snapshotBody">
-<!-- Single-row snapshot inserted here -->
-</tbody>
-</table>
-</section>
+      if (chart) {
+        chart.destroy();
+      }
 
+      const ctx = document.getElementById("priceChart").getContext("2d");
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `${symbol.toUpperCase()} Price ($)`,
+            data: prices,
+            borderColor: "#00eaff",
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false
+          }]
+        },
+        options: {
+          scales: {
+            x: { ticks: { color: "#fff" } },
+            y: { ticks: { color: "#fff" } }
+          },
+          plugins: {
+            legend: { labels: { color: "#fff" } }
+          }
+        }
+      });
 
-<footer class="footer">
-<small>Demo by IBM-FE • Local simulated feed by default</small>
-</footer>
-</main>
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(updatePrice, 1000);
+    }
 
+    function updatePrice() {
+      const change = (Math.random() - 0.5) * 2;
+      price = (price + change).toFixed(2);
 
-<script src="app.js"></script>
+      const changeEl = document.getElementById("change");
+      const priceEl = document.getElementById("price");
+      const dataBody = document.getElementById("dataBody");
+      const currentTime = new Date().toLocaleTimeString();
+
+      priceEl.textContent = price;
+
+      // Change text color (up/down)
+      if (change > 0) {
+        changeEl.textContent = "▲ +" + change.toFixed(2);
+        changeEl.className = "change up";
+      } else {
+        changeEl.textContent = "▼ " + change.toFixed(2);
+        changeEl.className = "change down";
+      }
+
+      // Add new row to table
+      const newRow = `
+        <tr>
+          <td>${symbol.toUpperCase()}</td>
+          <td>${price}</td>
+          <td class="${change > 0 ? "change up" : "change down"}">
+            ${change > 0 ? "▲ +" : "▼ "}${Math.abs(change).toFixed(2)}
+          </td>
+          <td>${currentTime}</td>
+        </tr>
+      `;
+      dataBody.innerHTML = newRow + dataBody.innerHTML;
+
+      // Update chart data
+      prices.push(price);
+      labels.push(currentTime);
+
+      if (prices.length > 15) {
+        prices.shift();
+        labels.shift();
+      }
+
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = prices;
+      chart.update();
+    }
+    /* ---------- JS END ---------- */
+  </script>
 </body>
 </html>
